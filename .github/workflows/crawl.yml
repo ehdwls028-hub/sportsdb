@@ -1,0 +1,31 @@
+name: 크롤러 (30분 간격)
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 의존성 설치
+        run: npm install
+        
+      - name: 크롤링 실행
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: node src/crawler_ci.js
+
+      - name: 변경사항 커밋
+        run: |
+          git config user.name "SportsDB Bot"
+          git config user.email "bot@sportsdb.kr"
+          git add data/ -A
+          git diff --quiet && git diff --staged --quiet || git commit -m "🤖 크롤러 업데이트 $(date +'%Y-%m-%d %H:%M')"
+          git push
