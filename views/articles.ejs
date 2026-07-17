@@ -1,0 +1,99 @@
+<%- include('header') %>
+<main>
+  <section class="page-header">
+    <h2>⚾ 기사</h2>
+  </section>
+
+  <!-- 퍼즐 그리드 -->
+  <div class="article-puzzle">
+    <% if (articles && articles.length > 0) { %>
+      <% articles.forEach(function(article, idx) { %>
+      <a href="/articles/<%= article.id %>" class="puzzle-item">
+        <div class="puzzle-img">
+          <img src="<%= article.thumbnail %>" alt="<%= article.title %>" loading="lazy">
+        </div>
+        <div class="puzzle-overlay">
+          <h3 class="puzzle-title"><%= article.title %></h3>
+          <p class="puzzle-summary"><%= (article.content || '').substring(0, 100) %></p>
+          <span class="puzzle-date"><%= article.published_at || '' %></span>
+        </div>
+      </a>
+      <% }) %>
+    <% } else { %>
+      <!-- 샘플 데이터 (퍼즐 효과) -->
+      <div class="puzzle-item">
+        <div class="puzzle-img">
+          <img src="https://via.placeholder.com/800x600/1e2938/dc2626?text=주요+기사" alt="" loading="lazy">
+        </div>
+        <div class="puzzle-overlay">
+          <h3 class="puzzle-title">주요 기사 - 퍼즐의 중심이 되는 큰 카드</h3>
+          <span class="puzzle-date">2026-07-17</span>
+        </div>
+      </div>
+      <div class="puzzle-item">
+        <div class="puzzle-img">
+          <img src="https://via.placeholder.com/400x600/1e2938/3b82f6?text=세로" alt="" loading="lazy">
+        </div>
+        <div class="puzzle-overlay">
+          <h3 class="puzzle-title">세로형 이미지 기사 - 2행 차지</h3>
+          <span class="puzzle-date">2026-07-16</span>
+        </div>
+      </div>
+      <div class="puzzle-item">
+        <div class="puzzle-img">
+          <img src="https://via.placeholder.com/600x400/1e2938/22c55e?text=기사" alt="" loading="lazy">
+        </div>
+        <div class="puzzle-overlay">
+          <h3 class="puzzle-title">일반 기사 - 기본 크기</h3>
+          <span class="puzzle-date">2026-07-15</span>
+        </div>
+      </div>
+      <div class="puzzle-item">
+        <div class="puzzle-img">
+          <img src="https://via.placeholder.com/800x350/1e2938/f59e0b?text=와이드" alt="" loading="lazy">
+        </div>
+        <div class="puzzle-overlay">
+          <h3 class="puzzle-title">와이드 가로형 기사 - 2열 차지</h3>
+          <span class="puzzle-date">2026-07-14</span>
+        </div>
+      </div>
+      <div class="puzzle-item">
+        <div class="puzzle-img">
+          <img src="https://via.placeholder.com/400x600/1e2938/ef4444?text=세로" alt="" loading="lazy">
+        </div>
+        <div class="puzzle-overlay">
+          <h3 class="puzzle-title">세로형 이미지 - 2행 차지</h3>
+          <span class="puzzle-date">2026-07-13</span>
+        </div>
+      </div>
+      <div class="puzzle-item">
+        <div class="puzzle-img">
+          <img src="https://via.placeholder.com/600x400/1e2938/8b5cf6?text=기사" alt="" loading="lazy">
+        </div>
+        <div class="puzzle-overlay">
+          <h3 class="puzzle-title">일반 크기 기사</h3>
+          <span class="puzzle-date">2026-07-12</span>
+        </div>
+      </div>
+      <div class="puzzle-item">
+        <div class="puzzle-img">
+          <img src="https://via.placeholder.com/600x400/1e2938/ec4899?text=기사" alt="" loading="lazy">
+        </div>
+        <div class="puzzle-overlay">
+          <h3 class="puzzle-title">일반 크기 기사</h3>
+          <span class="puzzle-date">2026-07-11</span>
+        </div>
+      </div>
+      <div class="puzzle-item">
+        <div class="puzzle-img">
+          <img src="https://via.placeholder.com/600x400/1e2938/06b6d4?text=기사" alt="" loading="lazy">
+        </div>
+        <div class="puzzle-overlay">
+          <h3 class="puzzle-title">일반 크기 기사</h3>
+          <span class="puzzle-date">2026-07-10</span>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</main>
+<%- include('footer') %>

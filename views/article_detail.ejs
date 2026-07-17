@@ -1,0 +1,22 @@
+<%- include('header') %>
+<main>
+  <article class="article-detail">
+    <a href="/articles" class="back-link">← 목록으로</a>
+
+    <% if (post.thumbnail) { %>
+    <div class="article-detail-img">
+      <img src="<%= post.thumbnail %>" alt="<%= post.title %>">
+    </div>
+    <% } %>
+
+    <h1 class="article-detail-title"><%= post.title %></h1>
+    <div class="article-detail-meta"><%= post.published_at || '' %></div>
+
+    <% if (post.content) { %>
+    <div class="article-detail-content">
+      <%= post.content.replace(/\n/g, '<br>') %>
+    </div>
+    <% } %>
+  </article>
+</main>
+<%- include('footer') %>

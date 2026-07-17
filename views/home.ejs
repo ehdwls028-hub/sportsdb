@@ -1,0 +1,132 @@
+<%- include('header') %>
+<main>
+  <!-- ===== 1. SportsDB 영상 (3열 × 2행) ===== -->
+  <section class="home-section">
+    <div class="home-section-header">
+      <h3><span class="accent-red">▼</span> SportsDB 영상</h3>
+      <a href="/sportsdb" class="home-more-link">더보기 →</a>
+    </div>
+    <% if (sportsdbVideos && sportsdbVideos.length > 0) { %>
+    <div class="home-video-grid-3">
+      <% sportsdbVideos.forEach(function(video) { %>
+      <a href="https://youtube.com/watch?v=<%= video.videoId %>" class="home-video-card" target="_blank" rel="noopener">
+        <div class="home-video-thumb">
+          <img src="<%= video.thumbnail %>" alt="" loading="lazy">
+          <span class="home-play-icon">▶</span>
+        </div>
+        <div class="home-video-info">
+          <h4 class="home-video-title"><%= video.title %></h4>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="home-empty">데이터를 불러오는 중입니다...</div>
+    <% } %>
+  </section>
+
+  <!-- ===== 2. 구단 보도자료 (5열 × 2행, 팀당 3개) ===== -->
+  <section class="home-section">
+    <div class="home-section-header">
+      <h3><span class="accent-blue">📰</span> 구단 보도자료</h3>
+      <a href="/press" class="home-more-link">더보기 →</a>
+    </div>
+    <div class="home-press-grid">
+      <% if (teams && teams.length > 0) { %>
+        <% teams.slice(0, 10).forEach(function(team) { %>
+        <% const tc = teamCounts ? teamCounts.find(t => t.id === team.id) : null; %>
+        <% const teamArticles = allArticles ? allArticles.filter(a => a.team_id === team.id).slice(0, 3) : []; %>
+        <div class="home-press-card">
+          <div class="home-press-topbar" style="background: <%= team.color %>">
+            <% if (team.icon_url) { %>
+            <img src="<%= team.icon_url %>" class="home-press-topbar-icon" alt="">
+            <% } else { %>
+            <span class="home-press-topbar-emoji"><%= team.emoji %></span>
+            <% } %>
+            <span class="home-press-topbar-name"><%= team.name %></span>
+          </div>
+          <div class="home-press-body">
+            <ul class="home-press-list">
+              <% if (teamArticles.length > 0) { %>
+                <% teamArticles.forEach(function(article) { %>
+                <li>
+                  <span class="home-press-bullet" style="background: <%= team.color %>"></span>
+                  <a href="<%= article.url %>" class="home-press-link" target="_blank" rel="noopener"><%= article.title %></a>
+                </li>
+                <% }) %>
+              <% } else { %>
+                <li><span class="home-press-link" style="color: var(--text-muted);">데이터 수집 중...</span></li>
+              <% } %>
+            </ul>
+            <a href="/press?team=<%= team.id %>" class="home-press-more">전체보기 →</a>
+          </div>
+        </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- ===== 3. 구단 유튜브 영상 (4열 × 20개) ===== -->
+  <section class="home-section">
+    <div class="home-section-header">
+      <h3><span class="accent-gold">🎬</span> 구단 유튜브</h3>
+      <a href="/youtube" class="home-more-link">더보기 →</a>
+    </div>
+    <% if (teamYoutubeVideos && teamYoutubeVideos.length > 0) { %>
+    <div class="home-youtube-grid">
+      <% teamYoutubeVideos.forEach(function(video) { %>
+      <% const team = teams ? teams.find(t => t.id === video.teamId) : null; %>
+      <a href="https://youtube.com/watch?v=<%= video.videoId %>" class="home-youtube-card" style="--team-color: <%= team ? team.color : '#dc2626' %>" target="_blank" rel="noopener">
+        <div class="home-youtube-thumb">
+          <img src="<%= video.thumbnail %>" alt="" loading="lazy">
+        </div>
+        <div class="home-youtube-info">
+          <div class="home-youtube-team">
+            <% if (team && team.icon_url) { %>
+            <img src="<%= team.icon_url %>" class="home-youtube-team-icon" alt="">
+            <% } else { %>
+            <span><%= video.teamName %></span>
+            <% } %>
+            <span class="home-youtube-team-name"><%= video.teamName %></span>
+          </div>
+          <h4 class="home-youtube-title"><%= video.title %></h4>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="home-empty">데이터를 불러오는 중입니다...</div>
+    <% } %>
+  </section>
+
+  <!-- ===== 4. 기사 (3열 × 6개) ===== -->
+  <section class="home-section">
+    <div class="home-section-header">
+      <h3><span class="accent-gold">⚾</span> 기사</h3>
+      <a href="/articles" class="home-more-link">더보기 →</a>
+    </div>
+    <div class="home-article-grid">
+    <% if (recentPosts && recentPosts.length > 0) { %>
+      <% recentPosts.forEach(function(post) { %>
+      <a href="/articles/<%= post.id %>" class="home-article-card">
+        <div class="home-article-thumb">
+          <% if (post.thumbnail) { %>
+          <img src="<%= post.thumbnail %>" alt="" loading="lazy">
+          <% } else { %>
+          <div class="home-article-placeholder">📷</div>
+          <% } %>
+        </div>
+        <div class="home-article-info">
+          <h4 class="home-article-title"><%= post.title %></h4>
+          <p class="home-article-summary"><%= (post.content || '').substring(0, 80) %></p>
+          <span class="home-article-date"><%= post.published_at || '' %></span>
+        </div>
+      </a>
+      <% }) %>
+    <% } else { %>
+      <div class="home-empty">등록된 기사가 없습니다.</div>
+    <% } %>
+    </div>
+  </section>
+</main>
+<%- include('footer') %>

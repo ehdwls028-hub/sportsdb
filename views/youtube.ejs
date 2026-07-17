@@ -1,0 +1,42 @@
+<%- include('header') %>
+<main>
+  <section class="page-header">
+    <h2>🎬 구단 유튜브</h2>
+    <p>KBO 10개 구단의 최신 유튜브 영상을 한곳에서 확인하세요.</p>
+  </section>
+
+  <!-- 구단별 영상 -->
+  <% if (teamData && teamData.length > 0) { %>
+    <% teamData.forEach(function(team) { %>
+    <section class="youtube-team-section">
+      <div class="youtube-team-header">
+        <h3><%= team.name %></h3>
+        <a href="https://www.youtube.com/channel/<%= team.channelId %>" class="youtube-channel-link" target="_blank" rel="noopener">채널 바로가기 →</a>
+      </div>
+      <div class="youtube-video-grid">
+        <% if (team.videos && team.videos.length > 0) { %>
+          <% (team.videos || []).forEach(function(video) { %>
+          <a href="https://youtube.com/watch?v=<%= video.videoId %>" class="youtube-video-card" target="_blank" rel="noopener">
+            <div class="youtube-thumb">
+              <img src="<%= video.thumbnail %>" alt="" loading="lazy">
+              <span class="youtube-play-icon">▶</span>
+            </div>
+            <div class="youtube-video-info">
+              <h4 class="youtube-video-title"><%= video.title %></h4>
+            </div>
+          </a>
+          <% }) %>
+        <% } else { %>
+          <div class="youtube-empty">영상을 불러올 수 없습니다.</div>
+        <% } %>
+      </div>
+    </section>
+    <% }) %>
+  <% } else { %>
+    <div class="empty-state">
+      <div class="empty-icon">🎥</div>
+      <p>유튜브 데이터를 불러오는 중입니다...</p>
+    </div>
+  <% } %>
+</main>
+<%- include('footer') %>

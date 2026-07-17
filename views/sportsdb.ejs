@@ -1,0 +1,74 @@
+<%- include('header') %>
+<main>
+  <!-- ===== 채널 정보 ===== -->
+  <section class="channel-header">
+    <div class="channel-info">
+      <div class="channel-avatar">
+        <img src="<%= channelInfo ? channelInfo.thumbnail : 'https://via.placeholder.com/120x120/1e2938/dc2626?text=SD' %>" alt="SportsDB">
+      </div>
+      <div class="channel-meta">
+        <h2>SportsDB</h2>
+        <div class="channel-stats">
+          <span class="stat-badge">🏆 구독자 <%= channelInfo ? (channelInfo.subscriberCount / 10000).toFixed(1) + '만' : '-' %></span>
+          <span class="stat-badge">📹 영상 <%= channelInfo ? channelInfo.videoCount + '개' : '-' %></span>
+        </div>
+        <p class="channel-desc">야구 관련 다양한 콘텐츠를 제공합니다. 구독과 좋아요 부탁드립니다! 🙌</p>
+        <a href="https://www.youtube.com/@SportsDB" class="channel-link" target="_blank" rel="noopener">🎬 채널 바로가기</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 최신 영상 (3열 × 15개) ===== -->
+  <section class="video-section">
+    <div class="section-header">
+      <h3><span class="accent-gold">▼</span> 영상</h3>
+    </div>
+    <% if (videos && videos.length > 0) { %>
+    <div class="video-grid-3">
+      <% videos.forEach(function(video) { %>
+      <a href="https://youtube.com/watch?v=<%= video.videoId %>" class="video-card" target="_blank" rel="noopener">
+        <div class="video-thumb">
+          <img src="<%= video.thumbnail %>" alt="<%= video.title %>" loading="lazy">
+        </div>
+        <div class="video-info">
+          <h4 class="video-title"><%= video.title %></h4>
+          <p class="video-meta">SportsDB · <%= video.publishedAt ? video.publishedAt.split('T')[0] : '' %></p>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="empty-state">
+      <div class="empty-icon">📹</div>
+      <p>영상을 불러오는 중입니다...</p>
+    </div>
+    <% } %>
+  </section>
+
+  <!-- ===== 쇼츠 (5열 × 20개) ===== -->
+  <section class="video-section">
+    <div class="section-header">
+      <h3><span class="accent-red">▶</span> 쇼츠</h3>
+    </div>
+    <% if (shorts && shorts.length > 0) { %>
+    <div class="shorts-grid-5">
+      <% shorts.forEach(function(short) { %>
+      <a href="https://youtube.com/watch?v=<%= short.videoId %>" class="shorts-card" target="_blank" rel="noopener">
+        <div class="shorts-thumb">
+          <img src="<%= short.thumbnail %>" alt="<%= short.title %>" loading="lazy">
+        </div>
+        <div class="shorts-info">
+          <h4 class="shorts-title"><%= short.title %></h4>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="empty-state" style="border-style: dashed;">
+      <div class="empty-icon">🎥</div>
+      <p>쇼츠를 불러오는 중입니다...</p>
+    </div>
+    <% } %>
+  </section>
+</main>
+<%- include('footer') %>

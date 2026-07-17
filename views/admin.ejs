@@ -1,0 +1,230 @@
+<%- include('header') %>
+<main>
+  <section class="page-header">
+    <h2>⚙️ Admin</h2>
+    <p>크롤링 설정 및 기사 관리를 할 수 있습니다.</p>
+  </section>
+
+  <div class="admin-layout">
+    <!-- ===== 좌측: 카테고리 ===== -->
+    <aside class="admin-sidebar">
+      <button class="admin-cat active" data-tab="articles">📝 기사 작성</button>
+      <button class="admin-cat" data-tab="crawler">🕷️ 크롤러 설정</button>
+    </aside>
+
+    <!-- ===== 우측: 콘텐츠 ===== -->
+
+    <!-- 기사 작성 -->
+    <div class="admin-content active" id="tab-articles">
+      <section class="admin-section">
+        <h3 class="admin-section-title">📝 기사 작성</h3>
+        <div class="admin-article-form">
+          <form id="articleForm" enctype="multipart/form-data">
+            <div class="form-group">
+              <label>제목</label>
+              <input type="text" name="title" class="form-input" placeholder="기사 제목을 입력하세요" required>
+            </div>
+            <div class="form-group">
+              <label>대표 이미지</label>
+              <input type="file" name="image" accept="image/*" class="form-input" id="imageInput" required>
+              <div id="imagePreview" style="display:none; margin-top:0.5rem;">
+                <img src="" style="max-height:200px; border-radius:6px;">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>내용</label>
+              <textarea name="content" class="form-textarea" rows="8" placeholder="기사 내용을 입력하세요"></textarea>
+            </div>
+            <button type="submit" class="form-btn">📝 기사 등록</button>
+          </form>
+          <div id="formMessage" style="margin-top:0.8rem;"></div>
+        </div>
+      </section>
+
+      <!-- 등록된 기사 목록 -->
+      <section class="admin-section">
+        <h3 class="admin-section-title">📋 등록된 기사</h3>
+        <div class="admin-post-list" id="postList">
+          <p style="color: var(--text-muted);">로딩 중...</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- 크롤러 설정 -->
+    <div class="admin-content" id="tab-crawler">
+      <!-- 전체 현황 -->
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="stat-value"><%= stats.totalArticles %></div>
+          <div class="stat-label">📦 전체 기사</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-value"><%= stats.totalCrawls %></div>
+          <div class="stat-label">🔄 크롤링 횟수</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-value"><%= teamStatus.filter(t => t.last_status === 'success').length %>/<%= teamStatus.length %></div>
+          <div class="stat-label">✅ 정상 구단</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="stat-value"><%= stats.lastCrawl ? stats.lastCrawl : '없음' %></div>
+          <div class="stat-label">⏰ 마지막 크롤링</div>
+        </div>
+      </div>
+
+      <!-- 구단별 현황 -->
+      <section class="admin-section">
+        <h3 class="admin-section-title">📊 구단별 데이터 현황</h3>
+        <div class="admin-team-grid">
+          <% teamStatus.forEach(function(t) { %>
+          <div class="admin-team-card" style="--team-color: <%= t.color %>">
+            <div class="admin-team-top">
+              <% if (t.icon_url) { %>
+              <img src="<%= t.icon_url %>" class="admin-team-icon" alt="">
+              <% } else { %>
+              <span class="admin-team-emoji"><%= t.emoji %></span>
+              <% } %>
+              <span class="admin-team-name"><%= t.name %></span>
+            </div>
+            <div class="admin-team-stats">
+              <span class="admin-stat"><strong><%= t.article_count %></strong>건</span>
+              <span class="admin-status <%= t.last_status === 'success' ? 'status-ok' : 'status-err' %>">
+                <%= t.last_status === 'success' ? '✅ 정상' : (t.last_status === 'error' ? '❌ 오류' : '⏳ 대기') %>
+              </span>
+            </div>
+            <div class="admin-team-time">
+              최근: <%= t.last_crawl ? t.last_crawl : '없음' %>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+      </section>
+
+      <!-- 크롤링 로그 -->
+      <section class="admin-section">
+        <h3 class="admin-section-title">📋 크롤링 로그 (최근 50건)</h3>
+        <div class="admin-log-table-wrap">
+          <table class="admin-log-table">
+            <thead>
+              <tr>
+                <th>시간</th>
+                <th>구단</th>
+                <th>상태</th>
+                <th>수집</th>
+                <th>신규</th>
+                <th>메시지</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (logs.length > 0) { %>
+                <% logs.forEach(function(log) { %>
+                <tr>
+                  <td class="td-time"><%= log.created_at %></td>
+                  <td><%= log.team_emoji %> <%= log.team_name %></td>
+                  <td><%= log.status === 'success' ? '✅' : '❌' %></td>
+                  <td class="td-num"><%= log.total %></td>
+                  <td class="td-num"><%= log.new_items %></td>
+                  <td class="td-msg"><%= log.message || '' %></td>
+                </tr>
+                <% }) %>
+              <% } else { %>
+                <tr><td colspan="6" class="td-empty">아직 크롤링 로그가 없습니다.</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+  // 카테고리 전환
+  document.querySelectorAll('.admin-cat').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.admin-cat').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+      if (this.dataset.tab === 'articles') loadPosts();
+    });
+  });
+
+  // 이미지 미리보기
+  document.getElementById('imageInput')?.addEventListener('change', function(e) {
+    const preview = document.getElementById('imagePreview');
+    const img = preview.querySelector('img');
+    if (this.files && this.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(ev) { img.src = ev.target.result; preview.style.display = 'block'; };
+      reader.readAsDataURL(this.files[0]);
+    }
+  });
+
+  // 기사 폼 제출
+  document.getElementById('articleForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const msg = document.getElementById('formMessage');
+    msg.innerHTML = '⏳ 등록 중...';
+    try {
+      const formData = new FormData(this);
+      const res = await fetch('/api/articles', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        msg.innerHTML = '✅ 기사가 등록되었습니다!';
+        this.reset();
+        document.getElementById('imagePreview').style.display = 'none';
+        loadPosts();
+      } else {
+        msg.innerHTML = '❌ ' + (data.message || '등록 실패');
+      }
+    } catch (err) {
+      msg.innerHTML = '❌ 오류가 발생했습니다.';
+    }
+  });
+
+  // 기사 목록 불러오기
+  async function loadPosts() {
+    const list = document.getElementById('postList');
+    list.innerHTML = '⏳ 로딩 중...';
+    try {
+      const res = await fetch('/api/posts');
+      const posts = await res.json();
+      if (posts.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-muted);">등록된 기사가 없습니다.</p>';
+        return;
+      }
+      list.innerHTML = posts.map(p => `
+        <div class="admin-post-item">
+          <div class="admin-post-thumb">
+            ${p.thumbnail ? '<img src="' + p.thumbnail + '" alt="">' : '📷'}
+          </div>
+          <div class="admin-post-info">
+            <div class="admin-post-title">${p.title}</div>
+            <div class="admin-post-date">${p.published_at || ''}</div>
+          </div>
+          <div class="admin-post-actions">
+            <a href="/admin/articles/${p.id}/edit" class="admin-post-btn edit-btn">✏️</a>
+            <button class="admin-post-btn delete-btn" onclick="deletePost(${p.id})">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      list.innerHTML = '<p style="color: var(--accent-red);">불러오기 실패</p>';
+    }
+  }
+
+  // 기사 삭제
+  async function deletePost(id) {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      const res = await fetch('/api/posts/' + id, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) loadPosts();
+    } catch (e) {}
+  }
+
+  // 페이지 로드 시 기사 목록 로딩
+  loadPosts();
+</script>
+<%- include('footer') %>

@@ -1,0 +1,134 @@
+<%- include('header') %>
+<main>
+  <section class="page-header">
+    <h2>📰 구단 보도자료</h2>
+    <p>KBO 10개 구단의 공식 보도자료를 한눈에 확인하세요.</p>
+  </section>
+
+  <!-- ===== 캡슐 필터 ===== -->
+  <div class="filter-bar" id="filterBar">
+    <a href="/press" class="capsule <%= selectedTeam === 'all' ? 'active' : '' %>">🏆 전체</a>
+    <% teams.forEach(function(team) { %>
+    <% const tc = teamCounts.find(t => t.id === team.id); %>
+    <a href="/press?team=<%= team.id %>" class="capsule <%= selectedTeam === team.id ? 'active' : '' %>">
+      <% if (team.icon_url) { %>
+      <img src="<%= team.icon_url %>" class="capsule-icon" alt="">
+      <% } else { %>
+      <%= team.emoji %>
+      <% } %>
+      <%= team.name %>
+    </a>
+    <% }) %>
+  </div>
+
+  <!-- ===== 보도자료 컨테이너 ===== -->
+  <div class="press-container">
+
+    <!-- === 전체 보기: 팀 카드 그리드 (3개 기사) === -->
+    <% if (selectedTeam === 'all') { %>
+    <div class="team-grid" id="teamGridView">
+      <% teams.forEach(function(team) { %>
+      <% const tc = teamCounts.find(t => t.id === team.id); %>
+      <% const teamArticles = articles.filter(a => a.team_id === team.id).slice(0, 3); %>
+      <div class="team-card" style="--team-color: <%= team.color %>">
+        <div class="team-card-header">
+          <% if (team.logo_url) { %>
+          <span class="team-logo"><img src="<%= team.logo_url %>" alt="<%= team.name %>"></span>
+          <% } else { %>
+          <span class="team-emoji"><%= team.emoji %></span>
+          <% } %>
+          <h3><%= team.name %></h3>
+        </div>
+        <ul class="press-list">
+          <% if (teamArticles.length > 0) { %>
+            <% teamArticles.forEach(function(article) { %>
+            <li class="press-item">
+              <span class="press-bullet" style="background: <%= team.color %>"></span>
+              <a href="<%= article.url %>" class="press-link" target="_blank" rel="noopener"><%= article.title %></a>
+            </li>
+            <% }) %>
+          <% } else { %>
+            <li class="press-item">
+              <span class="press-bullet" style="background: <%= team.color %>"></span>
+              <span class="press-link" style="color: var(--text-muted);">데이터 수집 중...</span>
+            </li>
+          <% } %>
+        </ul>
+        <a href="/press?team=<%= team.id %>" class="team-more" style="color: <%= team.color %>">
+          전체보기 →
+        </a>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+
+    <!-- === 특정 팀 선택 시: 이미지 + 요약 리스트 === -->
+    <% if (selectedTeam !== 'all') { %>
+    <%
+      const team = teams.find(t => t.id === selectedTeam);
+      const tc = teamCounts.find(t => t.id === selectedTeam);
+    %>
+    <div class="team-detail">
+      <div class="detail-header" style="border-left-color: <%= team ? team.color : 'var(--accent-red)' %>;">
+        <a href="/press" class="back-btn-inline">← 전체보기</a>
+        <% if (team && team.icon_url) { %>
+        <span class="team-logo team-logo--sm"><img src="<%= team.icon_url %>" alt="<%= team.name %>"></span>
+        <% } else { %>
+        <span class="detail-emoji"><%= team ? team.emoji : '' %></span>
+        <% } %>
+        <h3><%= team ? team.name : '' %> 보도자료</h3>
+      </div>
+      <div class="detail-list">
+        <% if (articles.length > 0) { %>
+          <% articles.forEach(function(article) { %>
+          <a href="<%= article.url %>" class="detail-card" target="_blank" rel="noopener">
+            <% if (article.thumbnail) { %>
+            <div class="detail-thumb">
+              <img src="<%= article.thumbnail %>" alt="" loading="lazy">
+            </div>
+            <% } %>
+            <div class="detail-card-content">
+              <h4 class="detail-card-title"><%= article.title %></h4>
+              <p class="detail-card-summary"><%= article.summary || '' %></p>
+              <span class="detail-card-meta">
+                📅 <%= article.published_at ? article.published_at : '날짜 없음' %>
+              </span>
+            </div>
+          </a>
+          <% }) %>
+        <% } else { %>
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <div class="empty-icon">📄</div>
+            <p>아직 수집된 보도자료가 없습니다.</p>
+            <p class="empty-sub">크롤러가 실행 중입니다. 잠시 후 다시 확인해주세요!</p>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- === 페이지네이션 (10페이지씩 블록) === -->
+      <% if (totalPages > 1) { %>
+      <div class="pagination">
+        <% if (currentPage > 1) { %>
+        <a href="/press?team=<%= selectedTeam %>&page=<%= currentPage - 1 %>" class="page-btn">‹ 이전</a>
+        <% } %>
+
+        <% 
+          // 10페이지씩 블록 (1~10, 11~20, ...)
+          const blockSize = 10;
+          const blockStart = Math.floor((currentPage - 1) / blockSize) * blockSize + 1;
+          const blockEnd = Math.min(blockStart + blockSize - 1, totalPages);
+          for (let p = blockStart; p <= blockEnd; p++) { 
+        %>
+        <a href="/press?team=<%= selectedTeam %>&page=<%= p %>" class="page-btn <%= p === currentPage ? 'active' : '' %>"><%= p %></a>
+        <% } %>
+
+        <% if (currentPage < totalPages) { %>
+        <a href="/press?team=<%= selectedTeam %>&page=<%= currentPage + 1 %>" class="page-btn">다음 ›</a>
+        <% } %>
+      </div>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+</main>
+<%- include('footer') %>
