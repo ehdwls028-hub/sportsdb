@@ -7,15 +7,15 @@ const API_BASE = 'https://www.googleapis.com/youtube/v3';
 const CACHE_TTL = 60 * 60 * 1000; // 1시간
 
 const KBO_CHANNELS = [
-  { id: 'kia', name: 'KIA 타이거즈', channelId: 'UCZt8Rdl7hr4R8cMoyErzdUg' },
+  { id: 'kia', name: 'KIA 타이거즈', channelId: 'UCKp8knO8a6tSI1oaLjfd9XA' },
   { id: 'samsung', name: '삼성 라이온즈', channelId: 'UCMWAku3a3h65QpLm63Jf2pw' },
   { id: 'lg', name: 'LG 트윈스', channelId: 'UCL6QZZxb-HR4hCh_eFAnQWA' },
-  { id: 'doosan', name: '두산 베어스', channelId: 'UCROslTau2Ujk10CA8XnqNDg' },
+  { id: 'doosan', name: '두산 베어스', channelId: 'UCsebzRfMhwYfjeBIxNX1brg' },
   { id: 'kt', name: 'KT 위즈', channelId: 'UCvScyjGkBUx2CJDMNAi9Twg' },
   { id: 'ssg', name: 'SSG 랜더스', channelId: 'UCt8iRtgjVqm5rJHNl1TUojg' },
   { id: 'nc', name: 'NC 다이노스', channelId: 'UC8_FRgynMX8wlGsU6Jh3zKg' },
   { id: 'lotte', name: '롯데 자이언츠', channelId: 'UCAZQZdSY5_YrziMPqXi-Zfw' },
-  { id: 'hanwha', name: '한화 이글스', channelId: 'UCFyyU5AfxK34v8O6Y3CUwIA' },
+  { id: 'hanwha', name: '한화 이글스', channelId: 'UCdq4Ji3772xudYRUatdzRrg' },
   { id: 'kiwoom', name: '키움 히어로즈', channelId: 'UC_MA8-XEaVmvyayPzG66IKg' }
 ];
 
