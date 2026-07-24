@@ -16,7 +16,7 @@
       <div class="youtube-video-grid">
         <% if (team.videos && team.videos.length > 0) { %>
           <% (team.videos || []).forEach(function(video) { %>
-          <a href="https://youtube.com/watch?v=<%= video.videoId %>" class="youtube-video-card" target="_blank" rel="noopener">
+          <a href="https://youtube.com/watch?v=<%= video.video_id %>" class="youtube-video-card" target="_blank" rel="noopener">
             <div class="youtube-thumb">
               <img src="<%= video.thumbnail %>" alt="" loading="lazy">
               <span class="youtube-play-icon">▶</span>

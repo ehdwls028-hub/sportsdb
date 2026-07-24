@@ -1,10 +1,11 @@
 require('dotenv').config();
 const axios = require('axios');
-const { setYoutubeCache, getYoutubeCache } = require('./database');
+const { upsertYoutubeVideo, getStoredVideos, getAllStoredTeamVideos, getLatestStoredAllTeamVideos, clearYoutubeVideos } = require('./database');
 
 const API_KEY = process.env.YOUTUBE_API_KEY;
 const API_BASE = 'https://www.googleapis.com/youtube/v3';
-const CACHE_TTL = 60 * 60 * 1000; // 1시간
+
+const SPORTSDB_CHANNEL_ID = 'UCMStj0Bzmmf1frzu4WgJq2w';
 
 const KBO_CHANNELS = [
   { id: 'kia', name: 'KIA 타이거즈', channelId: 'UCKp8knO8a6tSI1oaLjfd9XA' },
@@ -19,20 +20,6 @@ const KBO_CHANNELS = [
   { id: 'kiwoom', name: '키움 히어로즈', channelId: 'UC_MA8-XEaVmvyayPzG66IKg' }
 ];
 
-// ===== DB 캐시 시스템 (서버 재시행에도 유지) =====
-function getCache(key) {
-  return getYoutubeCache(key);
-}
-function setCache(key, data) {
-  setYoutubeCache(key, data);
-}
-
-// ===== API 호출 (캐시 적용) =====
-async function callAPI(url, params) {
-  const res = await axios.get(url, { params: { ...params, key: API_KEY }, timeout: 3000 });
-  return res.data;
-}
-
 // ===== ISO 8601 duration → 초 =====
 function parseDuration(isoDuration) {
   const m = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -40,105 +27,100 @@ function parseDuration(isoDuration) {
   return (parseInt(m[1] || 0) * 3600) + (parseInt(m[2] || 0) * 60) + parseInt(m[3] || 0);
 }
 
-// ===== 채널별 일반 영상 (3분 초과) =====
-async function getLatestVideos(channelId, maxResults = 15) {
-  const cacheKey = `videos_${channelId}_${maxResults}`;
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
+// ===== API 호출 (재시도 포함) =====
+async function callAPI(url, params, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await axios.get(url, {
+        params: { ...params, key: API_KEY },
+        timeout: 10000
+      });
+      return res.data;
+    } catch (err) {
+      if (err.response?.status === 429) {
+        const wait = attempt * 2000;
+        console.log(`[YouTube] 429 할당량 초과, ${wait / 1000}초 후 재시도...`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('429 retries exhausted');
+}
 
+// ===== 채널의 모든 영상 가져와서 DB 저장 =====
+async function refreshChannelVideos(channelId, teamId = null, maxResults = 50) {
   try {
-    const data = await callAPI(`${API_BASE}/search`, {
-      part: 'snippet', channelId, order: 'date',
-      maxResults: maxResults * 3, type: 'video'
+    // 1. 검색 API로 최신 영상 목록 가져오기
+    const searchData = await callAPI(`${API_BASE}/search`, {
+      part: 'snippet',
+      channelId,
+      order: 'date',
+      maxResults,
+      type: 'video'
     });
 
-    const items = data.items || [];
-    if (items.length === 0) return [];
+    const items = searchData.items || [];
+    if (items.length === 0) return 0;
 
+    // 2. 영상 ID 목록으로 duration 조회
     const videoIds = items.map(i => i.id.videoId).filter(Boolean);
     const durData = await callAPI(`${API_BASE}/videos`, {
-      part: 'contentDetails', id: videoIds.join(',')
+      part: 'contentDetails',
+      id: videoIds.join(',')
     });
 
     const durMap = {};
-    (durData.items || []).forEach(i => { durMap[i.id] = parseDuration(i.contentDetails.duration); });
+    (durData.items || []).forEach(i => {
+      durMap[i.id] = parseDuration(i.contentDetails.duration);
+    });
 
-    const result = items
-      .filter(i => (durMap[i.id.videoId] || 0) > 180)
-      .slice(0, maxResults)
-      .map(i => ({
-        videoId: i.id.videoId,
-        title: i.snippet.title,
-        thumbnail: i.snippet.thumbnails?.high?.url || i.snippet.thumbnails?.medium?.url,
-        publishedAt: i.snippet.publishedAt,
-        channelTitle: i.snippet.channelTitle,
-        channelId: i.snippet.channelId
-      }));
+    // 3. DB에 저장
+    let saved = 0;
+    for (const item of items) {
+      const videoId = item.id.videoId;
+      if (!videoId) continue;
 
-    setCache(cacheKey, result);
-    return result;
+      const duration = durMap[videoId] || 0;
+      const isShort = duration > 0 && duration <= 180;
+
+      try {
+        upsertYoutubeVideo({
+          video_id: videoId,
+          channel_id: channelId,
+          title: item.snippet.title,
+          thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url,
+          published_at: item.snippet.publishedAt,
+          duration_seconds: duration,
+          team_id: teamId,
+          is_short: isShort
+        });
+        saved++;
+      } catch (e) {
+        // 중복 무시
+      }
+    }
+
+    return saved;
   } catch (err) {
-    console.error(`[YouTube] 영상 실패:`, err.message);
-    return [];
+    console.error(`[YouTube] ${channelId} 갱신 실패:`, err.message);
+    return 0;
   }
 }
 
-// ===== 쇼츠 (3분 이하) =====
-async function getShorts(channelId, maxResults = 20) {
-  const cacheKey = `shorts_${channelId}_${maxResults}`;
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
-
-  try {
-    const data = await callAPI(`${API_BASE}/search`, {
-      part: 'snippet', channelId, order: 'date',
-      maxResults: maxResults * 2, type: 'video'
-    });
-
-    const items = data.items || [];
-    if (items.length === 0) return [];
-
-    const videoIds = items.map(i => i.id.videoId).filter(Boolean);
-    const durData = await callAPI(`${API_BASE}/videos`, {
-      part: 'contentDetails', id: videoIds.join(',')
-    });
-
-    const durMap = {};
-    (durData.items || []).forEach(i => { durMap[i.id] = parseDuration(i.contentDetails.duration); });
-
-    const result = items
-      .filter(i => (durMap[i.id.videoId] || 999) <= 180)
-      .slice(0, maxResults)
-      .map(i => ({
-        videoId: i.id.videoId,
-        title: i.snippet.title,
-        thumbnail: i.snippet.thumbnails?.high?.url || i.snippet.thumbnails?.medium?.url,
-        publishedAt: i.snippet.publishedAt
-      }));
-
-    setCache(cacheKey, result);
-    return result;
-  } catch (err) {
-    console.error(`[YouTube] 쇼츠 실패:`, err.message);
-    return [];
-  }
-}
-
-// ===== 채널 정보 =====
+// ===== 채널 정보 가져오기 =====
 async function getChannelInfo(channelId) {
-  const cacheKey = `channel_${channelId}`;
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
-
   try {
     const data = await callAPI(`${API_BASE}/channels`, {
-      part: 'snippet,statistics', id: channelId
+      part: 'snippet,statistics',
+      id: channelId
     });
 
     const item = data.items?.[0];
     if (!item) return null;
 
-    const result = {
+    return {
       channelId: item.id,
       title: item.snippet.title,
       thumbnail: item.snippet.thumbnails?.high?.url,
@@ -146,29 +128,57 @@ async function getChannelInfo(channelId) {
       videoCount: item.statistics?.videoCount,
       viewCount: item.statistics?.viewCount
     };
-
-    setCache(cacheKey, result);
-    return result;
   } catch (err) {
     console.error(`[YouTube] 채널 정보 실패:`, err.message);
     return null;
   }
 }
 
-// ===== 모든 구단 영상 =====
-async function getAllTeamVideos(maxPerTeam = 5) {
-  const results = [];
+// ===== 모든 채널 영상 갱신 (스케줄러용) =====
+async function refreshAllYoutubeVideos() {
+  console.log('[YouTube] 전체 영상 갱신 시작...');
+
+  // SportsDB 채널
+  const sportsdbCount = await refreshChannelVideos(SPORTSDB_CHANNEL_ID, null, 50);
+  console.log(`[YouTube] SportsDB: ${sportsdbCount}건 저장`);
+
+  // 10개 구단 채널 (순차적으로, API 할당량 고려)
+  let totalSaved = sportsdbCount;
   for (const team of KBO_CHANNELS) {
-    const videos = await getLatestVideos(team.channelId, maxPerTeam);
-    results.push({ ...team, videos });
+    await new Promise(r => setTimeout(r, 500)); // 호출 간격 0.5초
+    const count = await refreshChannelVideos(team.channelId, team.id, 50);
+    console.log(`[YouTube] ${team.name}: ${count}건 저장`);
+    totalSaved += count;
   }
-  return results;
+
+  console.log(`[YouTube] 전체 갱신 완료: ${totalSaved}건`);
+  return totalSaved;
+}
+
+// ===== DB에서 영상 조회 (페이지 렌더링용) =====
+function getLatestVideos(channelId, maxResults = 15) {
+  return getStoredVideos(channelId, maxResults, 0);
+}
+
+function getShorts(channelId, maxResults = 20) {
+  return getStoredVideos(channelId, maxResults, 1);
+}
+
+function getAllTeamVideos(limitPerTeam = 5) {
+  return getAllStoredTeamVideos(limitPerTeam, 0);
+}
+
+function getLatestAllTeamVideos(limit = 20) {
+  return getLatestStoredAllTeamVideos(limit);
 }
 
 module.exports = {
   KBO_CHANNELS,
+  SPORTSDB_CHANNEL_ID,
   getLatestVideos,
   getAllTeamVideos,
   getChannelInfo,
-  getShorts
+  getShorts,
+  getLatestAllTeamVideos,
+  refreshAllYoutubeVideos
 };

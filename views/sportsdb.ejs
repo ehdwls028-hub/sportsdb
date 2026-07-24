@@ -26,13 +26,13 @@
     <% if (videos && videos.length > 0) { %>
     <div class="video-grid-3">
       <% videos.forEach(function(video) { %>
-      <a href="https://youtube.com/watch?v=<%= video.videoId %>" class="video-card" target="_blank" rel="noopener">
+      <a href="https://youtube.com/watch?v=<%= video.video_id %>" class="video-card" target="_blank" rel="noopener">
         <div class="video-thumb">
           <img src="<%= video.thumbnail %>" alt="<%= video.title %>" loading="lazy">
         </div>
         <div class="video-info">
           <h4 class="video-title"><%= video.title %></h4>
-          <p class="video-meta">SportsDB · <%= video.publishedAt ? video.publishedAt.split('T')[0] : '' %></p>
+          <p class="video-meta">SportsDB · <%= video.published_at ? video.published_at.split('T')[0] : '' %></p>
         </div>
       </a>
       <% }) %>
@@ -53,7 +53,7 @@
     <% if (shorts && shorts.length > 0) { %>
     <div class="shorts-grid-5">
       <% shorts.forEach(function(short) { %>
-      <a href="https://youtube.com/watch?v=<%= short.videoId %>" class="shorts-card" target="_blank" rel="noopener">
+      <a href="https://youtube.com/watch?v=<%= short.video_id %>" class="shorts-card" target="_blank" rel="noopener">
         <div class="shorts-thumb">
           <img src="<%= short.thumbnail %>" alt="<%= short.title %>" loading="lazy">
         </div>

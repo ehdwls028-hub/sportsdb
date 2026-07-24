@@ -4,7 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const { initDB, getTeams, getArticleCountByTeam, getArticleCountByTeamId, getArticlesByTeam, getAllArticles, getCrawlLogs, getLastCrawlStatus, getTotalStats, createPost, getAllPosts, getPost, updatePost, deletePost } = require('./database');
 const { initScheduler } = require('./scheduler');
-const { KBO_CHANNELS, getLatestVideos, getChannelInfo, getShorts } = require('./youtube');
+const { KBO_CHANNELS, getLatestVideos, getChannelInfo, getShorts, getLatestAllTeamVideos, refreshAllYoutubeVideos } = require('./youtube');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,34 +27,36 @@ const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 initDB();
 initScheduler();
 
+// 서버 시작 시 YouTube 데이터 최초 갱신
+setTimeout(() => {
+  console.log('[YouTube] 서버 시작 - 초기 영상 갱신...');
+  refreshAllYoutubeVideos().catch(e => console.error('[YouTube] 초기 갱신 실패:', e.message));
+}, 5000);
+
 const TITLE = '스포츠디비 - 스포츠를 더 즐겁고 가깝게';
 
 app.get('/', async (req, res) => {
   try {
-    const sportsdbId = 'UCMStj0Bzmmf1frzu4WgJq2w';
-    const [sportsdbVideos, ...teamVideosArr] = await Promise.allSettled([
-      getLatestVideos(sportsdbId, 15),
-      ...KBO_CHANNELS.map(t => getLatestVideos(t.channelId, 5))
-    ]);
     const teams = getTeams();
     const teamCounts = getArticleCountByTeam();
     const allArticles = getAllArticles(999, 0);
     const recentPosts = getAllPosts().slice(0, 6);
-    const teamYoutubeVideos = [];
-    KBO_CHANNELS.forEach((team, i) => {
-      const videos = teamVideosArr[i].status === 'fulfilled' ? teamVideosArr[i].value : [];
-      videos.forEach(v => teamYoutubeVideos.push({ ...v, teamName: team.name, teamId: team.id }));
-    });
+
+    // DB에서 영상 읽기 (API 호출 없음)
+    const sportsdbVideos = getLatestVideos('UCMStj0Bzmmf1frzu4WgJq2w', 15);
+    const teamYoutubeVideos = getLatestAllTeamVideos(40);
+
     res.render('home', {
       title: TITLE, activeTab: 'home',
-      sportsdbVideos: sportsdbVideos.status === 'fulfilled' ? sportsdbVideos.value.slice(0, 6) : [],
+      sportsdbVideos: sportsdbVideos.slice(0, 6),
       teams, teamCounts, allArticles, recentPosts, teamYoutubeVideos
     });
   } catch (err) {
+    console.error('[Home] 렌더링 오류:', err.message);
     res.render('home', {
       title: TITLE, activeTab: 'home',
       sportsdbVideos: [], teams: getTeams(), teamCounts: getArticleCountByTeam(),
-      allArticles: getAllArticles(999, 0), teamYoutubeVideos: []
+      allArticles: getAllArticles(999, 0), teamYoutubeVideos: [], recentPosts: []
     });
   }
 });
@@ -62,9 +64,13 @@ app.get('/', async (req, res) => {
 app.get('/sportsdb', async (req, res) => {
   try {
     const channelId = 'UCMStj0Bzmmf1frzu4WgJq2w';
-    const [channelInfo, videos, shorts] = await Promise.all([
-      getChannelInfo(channelId), getLatestVideos(channelId, 15), getShorts(channelId, 20)
-    ]);
+    // 채널 정보만 API로, 영상은 DB에서
+    let channelInfo = null;
+    try {
+      channelInfo = await getChannelInfo(channelId);
+    } catch (e) { /* 채널 정보 없으면 넘어감 */ }
+    const videos = getLatestVideos(channelId, 15);
+    const shorts = getShorts(channelId, 20);
     res.render('sportsdb', { title: TITLE, activeTab: 'sportsdb', channelInfo, videos, shorts });
   } catch (err) {
     res.render('sportsdb', { title: TITLE, activeTab: 'sportsdb', channelInfo: null, videos: [], shorts: [] });
@@ -94,7 +100,10 @@ app.get('/youtube', async (req, res) => {
   try {
     const teamData = [];
     for (const team of KBO_CHANNELS) {
-      teamData.push({ ...team, videos: await getLatestVideos(team.channelId, 5) });
+      const videos = getLatestVideos(team.channelId, 5);
+      if (videos.length > 0) {
+        teamData.push({ ...team, videos });
+      }
     }
     res.render('youtube', { title: TITLE, activeTab: 'youtube', teamData });
   } catch (err) {

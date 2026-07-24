@@ -10,6 +10,7 @@ const { crawlLottePress } = require('./crawlers/lotte');
 const { crawlNcPress } = require('./crawlers/nc');
 const { crawlSamsungPress } = require('./crawlers/samsung');
 const { crawlSsgPress } = require('./crawlers/ssg');
+const { refreshAllYoutubeVideos } = require('./youtube');
 
 // 크롤링 실행 + 로그 저장
 async function crawlAndLog(teamId, crawlerFn, label, ...args) {
@@ -66,6 +67,17 @@ function initScheduler() {
   });
 
   console.log('⏰ 크론 스케줄 등록 완료 (30분 간격)');
+
+  // YouTube 4시간마다 갱신 (할당량 10,000 units/day 고려)
+  cron.schedule('0 */4 * * *', async () => {
+    console.log('⏰ 유튜브 영상 갱신 시작...');
+    try {
+      await refreshAllYoutubeVideos();
+      console.log('✅ 유튜브 영상 갱신 완료');
+    } catch (err) {
+      console.error('❌ 유튜브 갱신 실패:', err.message);
+    }
+  });
 
   setTimeout(async () => {
     console.log('🚀 첫 번째 실행: 과거 데이터 수집 시작...');

@@ -65,6 +65,24 @@ function initDB() {
       created_at TEXT DEFAULT (datetime('now', 'localtime'))
     );
 
+    CREATE TABLE IF NOT EXISTS youtube_videos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      video_id TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      thumbnail TEXT,
+      published_at TEXT,
+      duration_seconds INTEGER DEFAULT 0,
+      team_id TEXT,
+      is_short INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      UNIQUE(video_id, channel_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_youtube_channel ON youtube_videos(channel_id);
+    CREATE INDEX IF NOT EXISTS idx_youtube_team ON youtube_videos(team_id);
+    CREATE INDEX IF NOT EXISTS idx_youtube_date ON youtube_videos(published_at DESC);
+
     CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -291,6 +309,74 @@ function getPost(id) {
   return d.prepare('SELECT * FROM posts WHERE id = ?').get(id);
 }
 
+// ===== YouTube 영상 저장 =====
+function upsertYoutubeVideo(video) {
+  const d = getDB();
+  d.prepare(`
+    INSERT OR REPLACE INTO youtube_videos (video_id, channel_id, title, thumbnail, published_at, duration_seconds, team_id, is_short, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+  `).run(
+    video.video_id,
+    video.channel_id,
+    video.title,
+    video.thumbnail || null,
+    video.published_at || null,
+    video.duration_seconds || 0,
+    video.team_id || null,
+    video.is_short ? 1 : 0
+  );
+}
+
+function getStoredVideos(channelId, limit = 15, isShort = 0) {
+  const d = getDB();
+  return d.prepare(`
+    SELECT * FROM youtube_videos
+    WHERE channel_id = ? AND is_short = ?
+    ORDER BY published_at DESC
+    LIMIT ?
+  `).all(channelId, isShort, limit);
+}
+
+function getAllStoredTeamVideos(limitPerTeam = 5, isShort = 0) {
+  const d = getDB();
+  // 각 팀별로 최신 영상을 limitPerTeam개씩 가져옴
+  const teams = d.prepare('SELECT id, name, emoji, color, logo_url, icon_url FROM teams').all();
+  const results = [];
+  for (const team of teams) {
+    const videos = d.prepare(`
+      SELECT * FROM youtube_videos
+      WHERE team_id = ? AND is_short = ?
+      ORDER BY published_at DESC
+      LIMIT ?
+    `).all(team.id, isShort, limitPerTeam);
+    if (videos.length > 0) {
+      results.push({ team, videos });
+    }
+  }
+  return results;
+}
+
+function getLatestStoredAllTeamVideos(limit = 20) {
+  const d = getDB();
+  return d.prepare(`
+    SELECT v.*, t.name as team_name, t.emoji as team_emoji, t.color as team_color, t.icon_url as team_icon_url
+    FROM youtube_videos v
+    JOIN teams t ON v.team_id = t.id
+    WHERE v.is_short = 0
+    ORDER BY v.published_at DESC
+    LIMIT ?
+  `).all(limit);
+}
+
+function clearYoutubeVideos(channelId) {
+  const d = getDB();
+  if (channelId) {
+    d.prepare('DELETE FROM youtube_videos WHERE channel_id = ?').run(channelId);
+  } else {
+    d.prepare('DELETE FROM youtube_videos').run();
+  }
+}
+
 module.exports = {
   initDB,
   getDB,
@@ -311,5 +397,10 @@ module.exports = {
   getAllPosts,
   getPost,
   updatePost,
-  deletePost
+  deletePost,
+  upsertYoutubeVideo,
+  getStoredVideos,
+  getAllStoredTeamVideos,
+  getLatestStoredAllTeamVideos,
+  clearYoutubeVideos
 };
