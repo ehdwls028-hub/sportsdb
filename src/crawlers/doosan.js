@@ -1,5 +1,9 @@
 const axios = require('axios');
+const https = require('https');
 const { upsertArticle } = require('../database');
+
+// GitHub Actions Linux 환경에서 SSL 검증 우회
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const API_BASE = 'https://www.doosanbears.com/doosan/v1';
 
@@ -7,10 +11,11 @@ const apiClient = axios.create({
   baseURL: API_BASE,
   headers: {
     'Accept': 'application/json',
-    'Content-Type': 'application/json-patch+json'
+    'Content-Type': 'application/json-patch+json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
   },
-  timeout: 15000,
-  httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false })
+  timeout: 30000,
+  httpsAgent: new https.Agent({ rejectUnauthorized: false, keepAlive: true })
 });
 
 function stripHtml(html) {
@@ -33,7 +38,10 @@ async function crawlDoosanPress(maxItems = 200) {
 
   try {
     const response = await apiClient.get('/web/doorun/team-news', {
-      params: { page: 0, size: maxItems }
+      params: { page: 0, size: maxItems },
+      headers: {
+        'Referer': 'https://www.doosanbears.com/doorundoorun/news'
+      }
     });
 
     const list = response.data?.content || [];

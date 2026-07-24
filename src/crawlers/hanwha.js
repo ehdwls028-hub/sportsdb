@@ -14,7 +14,13 @@ async function crawlHanwhaPress(maxItems = 200) {
   try {
     const response = await axios.get(API_URL, {
       params: { start: 0, length: maxItems },
-      timeout: 15000
+      timeout: 30000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.hanwhaeagles.co.kr/',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+      }
     });
 
     const list = response.data?.result?.data || [];
