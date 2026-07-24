@@ -7,7 +7,11 @@ const LIST_URL = 'https://www.ncdinos.com/dinos/news.do';
 async function fetchPage(page) {
   const response = await axios.get(LIST_URL, {
     params: { pageNo: page },
-    timeout: 10000
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept-Language': 'ko-KR,ko;q=0.9'
+    },
+    timeout: 30000
   });
   return response.data;
 }
@@ -87,7 +91,7 @@ async function crawlNcPress(maxPages = 7) {
       try {
         html = await fetchPage(page);
       } catch (err) {
-        console.log(`[NC] ${page}페이지 에러, 중단`);
+        console.log(`[NC] ${page}페이지 에러, 중단 (${err.message})`);
         break;
       }
 

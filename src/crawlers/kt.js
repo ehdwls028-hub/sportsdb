@@ -13,16 +13,35 @@ function formatDate(timestamp) {
   return `${y}-${m}-${day}`;
 }
 
+// 재시도 포함 API 호출
+async function fetchWithRetry(url, config, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await axios.get(url, { ...config, timeout: 30000 });
+    } catch (err) {
+      if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT') {
+        console.log(`[KT] 타임아웃, ${attempt}차 재시도 중...`);
+        await new Promise(r => setTimeout(r, attempt * 2000));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('timeout (3회 재시도 실패)');
+}
+
 async function crawlKtPress(maxItems = 200) {
   console.log(`[KT] 보도자료 크롤링 시작... (최대 ${maxItems}건)`);
 
   try {
-    const response = await axios.get(API_URL, {
+    const response = await fetchWithRetry(API_URL, {
       params: {
         'article.boardCode': '001',
         'search.max': maxItems
       },
-      timeout: 15000
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
     });
 
     const list = response.data?.data?.list || [];

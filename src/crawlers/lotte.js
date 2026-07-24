@@ -8,8 +8,11 @@ const LIST_PARAMS = { pcode: 783, bcIdx: 2, PC: 20 };
 async function fetchPage(page) {
   const response = await axios.get(BASE_URL, {
     params: { ...LIST_PARAMS, P: page },
-    headers: { 'User-Agent': 'Mozilla/5.0' },
-    timeout: 15000
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept-Language': 'ko-KR,ko;q=0.9'
+    },
+    timeout: 30000
   });
   return response.data;
 }
@@ -23,9 +26,6 @@ function parsePage(html) {
 
     // 카테고리
     const category = $el.find('.news-list-type p').text().trim();
-
-    // 보도기사만 수집 (선택)
-    // if (category !== '보도기사') return;
 
     // 링크에서 bidx 추출
     const link = $el.find('a[href*="bidx="]').attr('href');
@@ -75,7 +75,7 @@ async function crawlLottePress(maxPages = 5) {
       try {
         html = await fetchPage(page);
       } catch (err) {
-        console.log(`[롯데] ${page}페이지 에러, 중단`);
+        console.log(`[롯데] ${page}페이지 에러, 중단 (${err.message})`);
         break;
       }
 
